@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vault Credits Leaderboard</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        body { 
+            font-family: 'Press Start 2P', cursive;
+            background: black;
+            color: #00ff99;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .credit-box {
+            font-size: 18px;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 255, 153, 0.2);
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px #00ff99;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            border: 2px solid #00ff99;
+            box-shadow: 0 0 15px #00ff99;
+            background: rgba(0, 255, 153, 0.1);
+            border-radius: 10px;
+        }
+
+        .leaderboard {
+            text-align: left;
+            padding: 10px;
+            margin-top: 20px;
+            background: rgba(0, 255, 153, 0.2);
+            border-radius: 10px;
+        }
+
+        input, button {
+            font-family: 'Press Start 2P', cursive;
+            padding: 10px;
+            margin: 10px;
+            border: none;
+            box-shadow: 0 0 10px #00ff99;
+            background: black;
+            color: #00ff99;
+        }
+    </style>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.8/firebase-database.js"></script>
+</head>
+<body>
+    <div class="credit-box">Vault Credits: <span id="credits">0</span></div>
+
+    <div class="container">
+        <h1>Vault Credits Leaderboard</h1>
+        <p>Earn 1 Vault Credit every minute! Enter your username to compete.</p>
+        <input type="text" id="username" placeholder="Enter your name">
+        <button onclick="addUser()">Join Leaderboard</button>
+        <div class="leaderboard">
+            <h2>Leaderboard</h2>
+            <ul id="leaderboard-list"></ul>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Config (Replace with your own config from Firebase Console)
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // Vault Credit System
+        let credits = localStorage.getItem("vaultCredits") || 0;
+        document.getElementById("credits").textContent = credits;
+
+        setInterval(() => {
+            credits++;
+            document.getElementById("credits").textContent = credits;
+            localStorage.setItem("vaultCredits", credits);
+        }, 60000); // Earns 1 credit per minute
+
+        function addUser() {
+            let username = document.getElementById("username").value;
+            if (!username) return;
+
+            database.ref("leaderboard/" + username).once("value", snapshot => {
+                if (snapshot.exists()) {
+                    alert("You already entered the leaderboard!");
+                } else {
+                    database.ref("leaderboard/" + username).set({ name: username, balance: credits });
+                    updateLeaderboard();
+                }
+            });
+        }
+
+        function updateLeaderboard() {
+            database.ref("leaderboard").orderByChild("balance").once("value", snapshot => {
+                let list = document.getElementById("leaderboard-list");
+                list.innerHTML = "";
+                let leaderboardData = [];
+                
+                snapshot.forEach(child => {
+                    leaderboardData.push(child.val());
+                });
+
+                leaderboardData.sort((a, b) => b.balance - a.balance); // Sort highest balance first
+
+                leaderboardData.forEach(player => {
+                    let entry = document.createElement("li");
+                    entry.textContent = `${player.name}: ${player.balance} Vault Credits`;
+                    list.appendChild(entry);
+                });
+            });
+        }
+
+        updateLeaderboard();
+    </script>
+</body>
+</html>
